@@ -1,233 +1,347 @@
-"""
-Extrae, para cada proyecto listado en un Excel, los componentes (archivos)
-que tienen issues ACTIVOS relacionados con reglas HTML en SonarQube, y genera
-un Excel de salida con el detalle y un resumen por célula.
+import os
+import glob
+import re
 
-Requisitos:
-    pip install requests pandas openpyxl
-
-Uso:
-    python extraer_issues_html.py
-    (el script te pedirá la ruta del Excel de entrada al ejecutarse)
-"""
-
-import requests
 import pandas as pd
-import urllib3
-from datetime import datetime
+import streamlit as st
+from openpyxl import load_workbook
 
-# Desactiva warnings de certificado SSL (proxy corporativo AEL)
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+from auth_utils import requiere_admin
 
-# ============================================================
-# CONFIGURACIÓN - COMPLETA AQUÍ TUS DATOS
-# ============================================================
-SONAR_URL = ""      # <-- Ej: "https://sonarqube.tuempresa.com"
-SONAR_TOKEN = ""    # <-- Tu token de acceso de SonarQube
+st.set_page_config(layout="wide", page_title="Editar datos de componentes")
 
-# Nombre de la columna en el Excel de entrada que contiene el project key
-COL_PROYECTO = "NombreProyecto"
+# Solo administradores pueden editar datos
+requiere_admin()
 
-# Nombre de la columna de célula en el Excel de entrada (si existe).
-# Si tu archivo no tiene esta columna, déjalo igual: el script lo detecta
-# automáticamente y llena "Sin Célula" en su lugar.
-COL_CELULA = "Celula"
+UPLOAD_DIR = "uploads"
+ARCHIVO_SELECCION = "data/seleccion_proyectos.csv"
 
-# Filtro de reglas HTML en SonarQube.
-# El plugin HTML de SonarQube usa el "language key" = "web" y el
-# repositorio de reglas "Web" (reglas tipo Web:S1234). Se usa el filtro
-# de lenguaje, que es el más confiable.
-SONAR_LANGUAGE_FILTER = "web"
+# Columnas de métricas que se pueden editar
+RATING_COLS = ["security_rating", "reliability_rating", "sqale_rating"]
+METRIC_COLS = [
+    "security_rating", "reliability_rating", "sqale_rating", "coverage",
+    "duplicated_lines_density", "bugs", "bugs_blocker", "bugs_critical",
+    "bugs_major", "bugs_minor", "bugs_info",
+]
+OPCIONES_RATING = ["A", "B", "C", "D", "E"]
 
-# Solo issues activos (no resueltos)
-SONAR_RESOLVED = "false"
-
-# Solo issues de tipo BUG (excluye CODE_SMELL, VULNERABILITY, SECURITY_HOTSPOT).
-# Valores posibles en SonarQube: BUG, VULNERABILITY, CODE_SMELL, SECURITY_HOTSPOT
-SONAR_TYPES = "BUG"
-
-# Severidades a incluir. Se excluye "INFO" a propósito.
-# Valores posibles en SonarQube: INFO, MINOR, MAJOR, CRITICAL, BLOCKER
-SONAR_SEVERITIES = "MINOR,MAJOR,CRITICAL,BLOCKER"
-
-# Tamaño de página para la API de SonarQube (máx. 500)
-PAGE_SIZE = 500
-
-# ============================================================
-# FIN CONFIGURACIÓN
-# ============================================================
+st.title("🛠️ Editar datos de componentes")
+st.caption(
+    "Edita las métricas de un componente para un mes específico, "
+    "o cambia la célula de un componente a través de varios meses."
+)
 
 
-def pedir_archivo_entrada() -> str:
-    ruta = input(
-        "Ingresa la ruta/nombre del archivo Excel de entrada "
-        f"(debe tener una columna llamada '{COL_PROYECTO}'): "
-    ).strip()
-    return ruta.strip('"').strip("'")
+# ---------------------- Utilidades de archivos ----------------------
+
+def mes_de_archivo(path):
+    """Extrae 'YYYY-MM' del nombre metricas_YYYY-MM.xlsx."""
+    m = re.search(r"metricas_(\d{4}-\d{2})\.xlsx$", os.path.basename(path))
+    return m.group(1) if m else None
 
 
-def cargar_proyectos(ruta_excel: str) -> pd.DataFrame:
-    df = pd.read_excel(ruta_excel)
+def archivos_por_mes():
+    """Devuelve un dict {mes: ruta} ordenado por mes."""
+    archivos = glob.glob(os.path.join(UPLOAD_DIR, "metricas_*.xlsx"))
+    mapa = {}
+    for a in archivos:
+        mes = mes_de_archivo(a)
+        if mes:
+            mapa[mes] = a
+    return dict(sorted(mapa.items()))
 
-    if COL_PROYECTO not in df.columns:
-        raise ValueError(
-            f"El archivo no tiene una columna llamada '{COL_PROYECTO}'. "
-            f"Columnas encontradas: {list(df.columns)}"
-        )
 
-    tiene_celula = COL_CELULA in df.columns
-    if not tiene_celula:
-        print(
-            f"Aviso: no se encontró la columna '{COL_CELULA}' en el archivo. "
-            "Se usará 'Sin Célula' para todos los proyectos."
-        )
-        df[COL_CELULA] = "Sin Célula"
+def leer_headers(ws):
+    """Devuelve {nombre_columna: indice_1based} usando la primera fila."""
+    headers = {}
+    for i, celda in enumerate(ws[1], start=1):
+        if celda.value is not None:
+            headers[str(celda.value).strip()] = i
+    return headers
 
-    df = df[[COL_PROYECTO, COL_CELULA]].dropna(subset=[COL_PROYECTO])
-    df[COL_PROYECTO] = df[COL_PROYECTO].astype(str).str.strip()
-    df[COL_CELULA] = df[COL_CELULA].fillna("Sin Célula")
-    df = df.drop_duplicates(subset=[COL_PROYECTO])
+
+def nombre_col_mes(headers):
+    for candidato in ("Mes", "mes"):
+        if candidato in headers:
+            return candidato
+    return None
+
+
+def convertir_valor(valor_str):
+    """Convierte un texto a número si aplica; si no, deja el texto tal cual.
+    Vacío -> None (celda vacía)."""
+    if valor_str is None:
+        return None
+    s = str(valor_str).strip()
+    if s == "":
+        return None
+    # Intentar entero
+    try:
+        if re.fullmatch(r"-?\d+", s):
+            return int(s)
+    except ValueError:
+        pass
+    # Intentar decimal (acepta coma o punto)
+    try:
+        return float(s.replace(",", "."))
+    except ValueError:
+        return s
+
+
+@st.cache_data
+def cargar_dataframe(path, _mtime):
+    """Carga un archivo mensual como DataFrame (para mostrar/seleccionar).
+    _mtime fuerza recarga cuando el archivo cambia."""
+    df = pd.read_excel(path)
+    df.columns = df.columns.str.strip()
     return df
 
 
-def obtener_issues_html(project_key: str) -> list:
-    """Trae todos los issues activos de reglas HTML para un proyecto,
-    paginando la API de SonarQube."""
-    issues = []
-    page = 1
-
-    while True:
-        params = {
-            "componentKeys": project_key,
-            "languages": SONAR_LANGUAGE_FILTER,
-            "resolved": SONAR_RESOLVED,
-            "types": SONAR_TYPES,
-            "severities": SONAR_SEVERITIES,
-            "ps": PAGE_SIZE,
-            "p": page,
-        }
-        resp = requests.get(
-            f"{SONAR_URL}/api/issues/search",
-            params=params,
-            auth=(SONAR_TOKEN, ""),
-            verify=False,
-            timeout=60,
-        )
-
-        if resp.status_code != 200:
-            print(
-                f"  [ERROR] {project_key}: HTTP {resp.status_code} - {resp.text[:200]}"
-            )
-            break
-
-        data = resp.json()
-        issues.extend(data.get("issues", []))
-
-        total = data.get("total", 0)
-        if page * PAGE_SIZE >= total:
-            break
-        page += 1
-
-    return issues
+def cargar_mes(path):
+    return cargar_dataframe(path, os.path.getmtime(path))
 
 
-def procesar(df_proyectos: pd.DataFrame) -> pd.DataFrame:
+def filas_de_proyecto(ws, headers, nombre_proyecto, celula=None):
+    """Devuelve los índices (1-based) de filas cuyo NombreProyecto coincide."""
+    np_idx = headers.get("NombreProyecto")
+    cel_idx = headers.get("Celula")
     filas = []
+    if np_idx is None:
+        return filas
+    for r in range(2, ws.max_row + 1):
+        val = ws.cell(row=r, column=np_idx).value
+        if val is not None and str(val).strip() == str(nombre_proyecto).strip():
+            if celula is not None and cel_idx is not None:
+                cel_val = ws.cell(row=r, column=cel_idx).value
+                if str(cel_val).strip() != str(celula).strip():
+                    continue
+            filas.append(r)
+    return filas
 
-    for _, row in df_proyectos.iterrows():
-        proyecto = row[COL_PROYECTO]
-        celula = row[COL_CELULA]
 
-        print(f"Consultando: {proyecto} ...")
-        issues = obtener_issues_html(proyecto)
-        print(f"  -> {len(issues)} issue(s) HTML activo(s)")
+mapa_archivos = archivos_por_mes()
 
-        for issue in issues:
-            componente_completo = issue.get("component", "")
-            # El componente viene como "projectKey:ruta/archivo.html"
-            archivo = (
-                componente_completo.split(":", 1)[1]
-                if ":" in componente_completo
-                else componente_completo
+if not mapa_archivos:
+    st.warning("⚠️ No se encontró ningún archivo de métricas en la carpeta 'uploads'.")
+    st.stop()
+
+tab_metricas, tab_celula = st.tabs([
+    "✏️ Editar métricas (un mes)",
+    "🔀 Cambiar célula (varios meses)",
+])
+
+
+# ============================================================
+# FEATURE 1: Editar métricas de un componente en un mes
+# ============================================================
+with tab_metricas:
+    st.subheader("Editar métricas de un componente")
+    st.caption("Los cambios afectan únicamente al mes seleccionado.")
+
+    meses = list(mapa_archivos.keys())
+    mes_sel = st.selectbox(
+        "1️⃣ Selecciona el mes",
+        options=meses,
+        index=len(meses) - 1,
+        key="mes_metricas",
+    )
+    path_mes = mapa_archivos[mes_sel]
+    df_mes = cargar_mes(path_mes)
+
+    proyectos = sorted(df_mes["NombreProyecto"].dropna().astype(str).unique())
+    proyecto_sel = st.selectbox(
+        "2️⃣ Selecciona el componente",
+        options=proyectos,
+        index=None,
+        placeholder="Escribe para buscar...",
+        key="proyecto_metricas",
+    )
+
+    if proyecto_sel:
+        fila_df = df_mes[df_mes["NombreProyecto"].astype(str) == proyecto_sel]
+
+        if len(fila_df) > 1:
+            st.info(
+                f"ℹ️ Este componente aparece {len(fila_df)} veces en {mes_sel}. "
+                "Se editarán todas sus filas con los mismos valores."
             )
 
-            filas.append(
-                {
-                    "Célula": celula,
-                    "Proyecto": proyecto,
-                    "Componente": componente_completo,
-                    "Archivo": archivo,
-                    "Regla": issue.get("rule", ""),
-                    "Severidad": issue.get("severity", ""),
-                    "Tipo": issue.get("type", ""),
-                    "Mensaje": issue.get("message", ""),
-                    "Línea": issue.get("line", ""),
-                    "Estado": issue.get("status", ""),
-                    "Fecha Creación": issue.get("creationDate", ""),
-                    "Issue Key": issue.get("key", ""),
-                }
-            )
+        fila = fila_df.iloc[0]
+        celula_actual = fila.get("Celula", "")
+        st.markdown(f"**Célula actual:** `{celula_actual}`")
 
-    return pd.DataFrame(filas)
+        # Columnas de métricas presentes en este archivo
+        cols_presentes = [c for c in METRIC_COLS if c in df_mes.columns]
 
+        with st.form("form_metricas"):
+            nuevos_valores = {}
+            columnas = st.columns(3)
+            for i, col in enumerate(cols_presentes):
+                valor_actual = fila.get(col, "")
+                valor_actual = "" if pd.isna(valor_actual) else str(valor_actual)
+                with columnas[i % 3]:
+                    if col in RATING_COLS:
+                        opciones = list(dict.fromkeys(
+                            ([valor_actual] if valor_actual else []) + OPCIONES_RATING
+                        ))
+                        idx = opciones.index(valor_actual) if valor_actual in opciones else 0
+                        nuevos_valores[col] = st.selectbox(col, opciones, index=idx)
+                    else:
+                        nuevos_valores[col] = st.text_input(col, value=valor_actual)
 
-def generar_excel_salida(df_detalle: pd.DataFrame) -> str:
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    nombre_salida = f"issues_html_por_componente_{timestamp}.xlsx"
+            guardar = st.form_submit_button("💾 Guardar cambios de métricas")
 
-    with pd.ExcelWriter(nombre_salida, engine="openpyxl") as writer:
-        if df_detalle.empty:
-            pd.DataFrame(
-                [{"Info": "No se encontraron issues activos de reglas HTML."}]
-            ).to_excel(writer, sheet_name="Detalle", index=False)
-        else:
-            df_detalle.to_excel(writer, sheet_name="Detalle", index=False)
+        if guardar:
+            wb = load_workbook(path_mes)
+            ws = wb.active
+            headers = leer_headers(ws)
+            filas = filas_de_proyecto(ws, headers, proyecto_sel)
 
-            # Resumen por célula
-            resumen_celula = (
-                df_detalle.groupby("Célula")
-                .agg(
-                    Proyectos_Afectados=("Proyecto", "nunique"),
-                    Componentes_Afectados=("Componente", "nunique"),
-                    Total_Issues=("Issue Key", "count"),
+            if not filas:
+                st.error("No se encontró el componente en el archivo. No se guardó nada.")
+            else:
+                for r in filas:
+                    for col, valor in nuevos_valores.items():
+                        if col in headers:
+                            ws.cell(row=r, column=headers[col]).value = convertir_valor(valor)
+                wb.save(path_mes)
+                st.cache_data.clear()
+                st.success(
+                    f"✅ Métricas actualizadas para '{proyecto_sel}' en {mes_sel} "
+                    f"({len(filas)} fila(s))."
                 )
-                .reset_index()
-                .sort_values("Total_Issues", ascending=False)
-            )
-            resumen_celula.to_excel(writer, sheet_name="Resumen por Célula", index=False)
-
-            # Resumen por componente
-            resumen_componente = (
-                df_detalle.groupby(["Célula", "Proyecto", "Componente"])
-                .agg(Total_Issues=("Issue Key", "count"))
-                .reset_index()
-                .sort_values("Total_Issues", ascending=False)
-            )
-            resumen_componente.to_excel(
-                writer, sheet_name="Resumen por Componente", index=False
-            )
-
-    return nombre_salida
+                st.rerun()
 
 
-def main():
-    if not SONAR_URL or not SONAR_TOKEN:
-        print(
-            "Falta configurar SONAR_URL y/o SONAR_TOKEN al inicio del script. "
-            "Complétalos y vuelve a ejecutar."
+# ============================================================
+# FEATURE 2: Cambiar la célula de un componente en varios meses
+# ============================================================
+with tab_celula:
+    st.subheader("Cambiar la célula de un componente")
+    st.caption(
+        "La célula está ligada al componente a lo largo de los meses. "
+        "Aquí puedes reasignarlo en el rango de meses que elijas."
+    )
+
+    # Índice global de proyecto -> meses en los que aparece y su célula
+    @st.cache_data
+    def indice_global(firmas):
+        registros = []
+        for mes, path in mapa_archivos.items():
+            df = cargar_mes(path)
+            if "NombreProyecto" not in df.columns:
+                continue
+            for _, row in df[["NombreProyecto", "Celula"]].dropna(subset=["NombreProyecto"]).iterrows():
+                registros.append({
+                    "Mes": mes,
+                    "NombreProyecto": str(row["NombreProyecto"]).strip(),
+                    "Celula": "" if pd.isna(row.get("Celula")) else str(row["Celula"]).strip(),
+                })
+        return pd.DataFrame(registros)
+
+    firmas = tuple((m, os.path.getmtime(p)) for m, p in mapa_archivos.items())
+    df_global = indice_global(firmas)
+
+    todos_proyectos = sorted(df_global["NombreProyecto"].unique())
+    proyecto_cel = st.selectbox(
+        "1️⃣ Selecciona el componente",
+        options=todos_proyectos,
+        index=None,
+        placeholder="Escribe para buscar...",
+        key="proyecto_celula",
+    )
+
+    if proyecto_cel:
+        apariciones = df_global[df_global["NombreProyecto"] == proyecto_cel].sort_values("Mes")
+        st.markdown("**Apariciones actuales:**")
+        st.dataframe(apariciones[["Mes", "Celula"]], use_container_width=True, hide_index=True)
+
+        meses_disponibles = apariciones["Mes"].tolist()
+        celulas_existentes = sorted(df_global["Celula"].replace("", pd.NA).dropna().unique())
+
+        st.markdown("**2️⃣ Selecciona los meses a actualizar**")
+        aplicar_todos = st.checkbox(
+            "Aplicar a todos los meses en los que aparece el componente",
+            value=True,
+            key="aplicar_todos",
         )
-        return
+        if aplicar_todos:
+            meses_objetivo = meses_disponibles
+        else:
+            meses_objetivo = st.multiselect(
+                "Meses a actualizar",
+                options=meses_disponibles,
+                default=meses_disponibles,
+                key="meses_objetivo",
+            )
 
-    ruta_entrada = pedir_archivo_entrada()
-    df_proyectos = cargar_proyectos(ruta_entrada)
-    print(f"\n{len(df_proyectos)} proyecto(s) cargado(s) desde el Excel.\n")
+        st.markdown("**3️⃣ Nueva célula**")
+        col_a, col_b = st.columns(2)
+        with col_a:
+            celula_elegida = st.selectbox(
+                "Elegir una célula existente",
+                options=["— (escribir una nueva) —"] + celulas_existentes,
+                key="celula_existente",
+            )
+        with col_b:
+            celula_nueva_txt = st.text_input(
+                "…o escribir una nueva célula",
+                key="celula_nueva_txt",
+            )
 
-    df_detalle = procesar(df_proyectos)
-    archivo_salida = generar_excel_salida(df_detalle)
+        nueva_celula = (
+            celula_nueva_txt.strip()
+            if celula_nueva_txt.strip()
+            else (celula_elegida if celula_elegida != "— (escribir una nueva) —" else "")
+        )
 
-    print(f"\nListo. Archivo generado: {archivo_salida}")
-    print(f"Total de issues HTML activos encontrados: {len(df_detalle)}")
+        actualizar_seleccion = st.checkbox(
+            "También actualizar la selección de proyectos (seleccion_proyectos.csv)",
+            value=True,
+            key="actualizar_seleccion",
+        )
 
+        if st.button("💾 Cambiar célula", key="btn_cambiar_celula"):
+            if not nueva_celula:
+                st.error("Debes elegir o escribir una nueva célula.")
+            elif not meses_objetivo:
+                st.error("Debes seleccionar al menos un mes.")
+            else:
+                total_filas = 0
+                meses_editados = []
+                for mes in meses_objetivo:
+                    path = mapa_archivos[mes]
+                    wb = load_workbook(path)
+                    ws = wb.active
+                    headers = leer_headers(ws)
+                    if "Celula" not in headers:
+                        continue
+                    filas = filas_de_proyecto(ws, headers, proyecto_cel)
+                    for r in filas:
+                        ws.cell(row=r, column=headers["Celula"]).value = nueva_celula
+                    if filas:
+                        wb.save(path)
+                        total_filas += len(filas)
+                        meses_editados.append(mes)
 
-if __name__ == "__main__":
-    main()
+                # Actualizar CSV de selección de proyectos si aplica
+                sel_msg = ""
+                if actualizar_seleccion and os.path.exists(ARCHIVO_SELECCION):
+                    df_sel = pd.read_csv(ARCHIVO_SELECCION)
+                    mask = df_sel["NombreProyecto"].astype(str) == proyecto_cel
+                    if mask.any():
+                        df_sel.loc[mask, "Celula"] = nueva_celula
+                        df_sel = df_sel.drop_duplicates(subset=["Celula", "NombreProyecto"])
+                        df_sel.to_csv(ARCHIVO_SELECCION, index=False)
+                        sel_msg = " Selección de proyectos actualizada."
+
+                st.cache_data.clear()
+                if total_filas:
+                    st.success(
+                        f"✅ Célula de '{proyecto_cel}' cambiada a '{nueva_celula}' "
+                        f"en {len(meses_editados)} mes(es): {', '.join(meses_editados)}."
+                        + sel_msg
+                    )
+                    st.rerun()
+                else:
+                    st.warning("No se actualizó ninguna fila (no se encontró el componente en los meses elegidos).")
