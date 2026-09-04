@@ -42,6 +42,10 @@ SONAR_LANGUAGE_FILTER = "web"
 # Solo issues activos (no resueltos)
 SONAR_RESOLVED = "false"
 
+# Severidades a incluir. Se excluye "INFO" a propósito.
+# Valores posibles en SonarQube: INFO, MINOR, MAJOR, CRITICAL, BLOCKER
+SONAR_SEVERITIES = "MINOR,MAJOR,CRITICAL,BLOCKER"
+
 # Tamaño de página para la API de SonarQube (máx. 500)
 PAGE_SIZE = 500
 
@@ -93,6 +97,7 @@ def obtener_issues_html(project_key: str) -> list:
             "componentKeys": project_key,
             "languages": SONAR_LANGUAGE_FILTER,
             "resolved": SONAR_RESOLVED,
+            "severities": SONAR_SEVERITIES,
             "ps": PAGE_SIZE,
             "p": page,
         }
