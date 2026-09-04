@@ -42,6 +42,10 @@ SONAR_LANGUAGE_FILTER = "web"
 # Solo issues activos (no resueltos)
 SONAR_RESOLVED = "false"
 
+# Solo issues de tipo BUG (excluye CODE_SMELL, VULNERABILITY, SECURITY_HOTSPOT).
+# Valores posibles en SonarQube: BUG, VULNERABILITY, CODE_SMELL, SECURITY_HOTSPOT
+SONAR_TYPES = "BUG"
+
 # Severidades a incluir. Se excluye "INFO" a propósito.
 # Valores posibles en SonarQube: INFO, MINOR, MAJOR, CRITICAL, BLOCKER
 SONAR_SEVERITIES = "MINOR,MAJOR,CRITICAL,BLOCKER"
@@ -97,6 +101,7 @@ def obtener_issues_html(project_key: str) -> list:
             "componentKeys": project_key,
             "languages": SONAR_LANGUAGE_FILTER,
             "resolved": SONAR_RESOLVED,
+            "types": SONAR_TYPES,
             "severities": SONAR_SEVERITIES,
             "ps": PAGE_SIZE,
             "p": page,
