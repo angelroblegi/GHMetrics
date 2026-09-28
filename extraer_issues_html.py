@@ -211,11 +211,39 @@
                         <div class="d-flex flex-wrap gap-3">
                             @foreach (var cel in Model.CelulasDisponibles)
                             {
+                                var seleccionada = Model.Input.CelulasIds.Contains(cel.Id);
+
+                                decimal? porcentaje = null;
+
+                                if (Model.Input.Porcentajes.TryGetValue(cel.Id, out var porcentajeGuardado))
+                                {
+                                    porcentaje = porcentajeGuardado;
+                                }
+
                                 <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="Input.CelulasIds"
-                                           value="@cel.Id" id="cel_@cel.Id"
-                                           checked="@Model.Input.CelulasIds.Contains(cel.Id)" />
-                                    <label class="form-check-label" for="cel_@cel.Id">@cel.Nombre</label>
+                                    <input class="form-check-input"
+                                           type="checkbox"
+                                           name="Input.CelulasIds"
+                                           value="@cel.Id"
+                                           id="cel_@cel.Id"
+                                           checked="@seleccionada" />
+
+                                    <label class="form-check-label" for="cel_@cel.Id">
+                                        @cel.Nombre
+                                    </label>
+
+                                    <div class="input-group input-group-sm mt-1" style="width: 130px;">
+                                        <input type="number"
+                                               class="form-control"
+                                               name="Input.Porcentajes[@cel.Id]"
+                                               value="@porcentaje"
+                                               min="0"
+                                               max="100"
+                                               step="0.01"
+                                               placeholder="0.00" />
+
+                                        <span class="input-group-text">%</span>
+                                    </div>
                                 </div>
                             }
                         </div>
