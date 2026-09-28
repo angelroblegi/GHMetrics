@@ -1,308 +1,293 @@
-@page "{id:int}"
-@model CommanCenter.Portal.Pages.DataTeam.DetalleConsultorModel
-@{
-    ViewData["Title"] = Model.PuedeEditar ? "Editar colaborador" : "Perfil del colaborador";
-    var soloLectura = !Model.PuedeEditar;
-    var consultor = Model.ConsultorActual;
-    var mostrarRetencion = consultor is not null
-        && !string.Equals(consultor.Estado, "Activo", StringComparison.OrdinalIgnoreCase)
-        && consultor.HojaVidaFechaExpiracion.HasValue;
-}
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using CommanCenter.Portal.Models;
+using CommanCenter.Portal.Services;
+using System.Net;
+using System.Net.Http.Headers;
 
-@section Styles {
-    <style>
-        .avatar-lg {
-            width: 120px; height: 120px; border-radius: 50%;
-            object-fit: cover; background: #6366f1;
-            display: inline-flex; align-items: center; justify-content: center;
-            color: #fff; font-weight: 700; font-size: 2.2rem;
+namespace CommanCenter.Portal.Pages.DataTeam;
+
+[Authorize(Roles = "Admin,Supervisor,Senior")]
+public class DetalleConsultorModel : PageModel
+{
+    private readonly IApiClient _api;
+    private readonly IImageStorageService _imagenes;
+    private readonly ILogger<DetalleConsultorModel> _logger;
+
+    private static readonly string[] ExtensionesPermitidas = { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+    private static readonly string[] ExtensionesPdfPermitidas = { ".pdf" };
+    private const long TamanoMaximoBytes = 5 * 1024 * 1024; // 5 MB
+    private const long TamanoMaximoHojaVidaBytes = 10 * 1024 * 1024; // 10 MB
+
+    [BindProperty(SupportsGet = true)] public int Id { get; set; }
+    [BindProperty] public EditarConsultorViewModel Input { get; set; } = new();
+    [BindProperty] public IFormFile? Foto { get; set; }
+    [BindProperty] public IFormFile? HojaVidaPdf { get; set; }
+
+    public List<CelulaViewModel> CelulasDisponibles { get; set; } = [];
+    public ConsultorViewModel? ConsultorActual { get; set; }
+
+    /// <summary>Solo Admin y Supervisor pueden editar; Senior solo visualiza.</summary>
+    public bool PuedeEditar => User.IsInRole("Admin") || User.IsInRole("Supervisor");
+
+    public string? Error { get; set; }
+    public string? HojaVidaError { get; set; }
+
+    /// <summary>
+    /// URL de la foto lista para mostrar en la vista (con SAS token si aplica).
+    /// Input.FotoUrl SIEMPRE guarda la URL base (sin token), que es la que se persiste en BD.
+    /// </summary>
+    public string? FotoUrlParaMostrar { get; set; }
+
+    public DetalleConsultorModel(IApiClient api, IImageStorageService imagenes, ILogger<DetalleConsultorModel> logger)
+    {
+        _api = api;
+        _imagenes = imagenes;
+        _logger = logger;
+    }
+
+    public async Task<IActionResult> OnGetAsync()
+    {
+        Error = TempData["Error"] as string;
+        await CargarCelulasAsync();
+
+        var token = HttpContext.Session.GetString("jwt_token");
+        var cargado = await CargarConsultorAsync(token, mapInput: true);
+        if (!cargado)
+        {
+            Error ??= "No se encontró el consultor.";
+            return Page();
         }
-    </style>
-}
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="fw-bold mb-0">@ViewData["Title"]</h2>
-    <a asp-page="/DataTeam/DirectorioColaboradores" class="btn btn-outline-secondary btn-sm">
-        <i class="bi bi-arrow-left me-1"></i>Volver
-    </a>
-</div>
+        FotoUrlParaMostrar = _imagenes.ObtenerUrlConSas(Input.FotoUrl);
+        return Page();
+    }
 
-@if (!string.IsNullOrEmpty(Model.Error))
-{
-    <div class="alert alert-danger">@Model.Error</div>
-}
+    public async Task<IActionResult> OnPostAsync()
+    {
+        await CargarCelulasAsync();
+        FotoUrlParaMostrar = _imagenes.ObtenerUrlConSas(Input.FotoUrl);
 
-@if (TempData["Success"] is string success && !string.IsNullOrWhiteSpace(success))
-{
-    <div class="alert alert-success">@success</div>
-}
+        if (!PuedeEditar)
+        {
+            Error = "No tiene permisos para editar consultores.";
+            return Page();
+        }
 
-<div class="card shadow-sm">
-    <div class="card-body">
-        <form method="post" enctype="multipart/form-data" id="detalleConsultorForm">
-            @Html.AntiForgeryToken()
-            <input type="hidden" asp-for="Input.Id" />
-            <input type="hidden" asp-for="Input.FotoUrl" />
+        var token = HttpContext.Session.GetString("jwt_token");
+        await CargarConsultorAsync(token, mapInput: false);
 
-            <div class="row g-3">
-                <div class="col-12 text-center mb-2">
-                    @if (!string.IsNullOrEmpty(Model.FotoUrlParaMostrar))
-                    {
-                        <img src="@Model.FotoUrlParaMostrar" alt="@Model.Input.Nombre" class="avatar-lg" />
-                    }
-                    else
-                    {
-                        <span class="avatar-lg">@(!string.IsNullOrWhiteSpace(Model.Input.Nombre) ? Model.Input.Nombre[0].ToString() : "?")</span>
-                    }
-                </div>
+        if (!ModelState.IsValid)
+        {
+            Error = "Revise los campos obligatorios marcados.";
+            return Page();
+        }
 
-                <div class="col-12">
-                    <div class="border rounded-3 p-3 bg-light">
-                        <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
-                            <div>
-                                <h6 class="fw-bold mb-1">Hoja de Vida (Capacidades)</h6>
-                                <p class="text-muted small mb-2">Carga y descarga el PDF asociado al colaborador.</p>
-                            </div>
-                            @if (consultor?.TieneHojaVida == true)
-                            {
-                                <a asp-page-handler="DescargarHojaVida" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-sm">
-                                    <i class="bi bi-download me-1"></i>Descargar hoja de vida
-                                </a>
-                            }
-                        </div>
-
-                        @if (!string.IsNullOrEmpty(Model.HojaVidaError))
-                        {
-                            <div class="alert alert-danger py-2 mb-3">@Model.HojaVidaError</div>
-                        }
-
-                        <div class="small mb-2">
-                            @if (consultor?.TieneHojaVida == true)
-                            {
-                                <div><span class="fw-semibold">Archivo actual:</span> @consultor.HojaVidaNombreArchivo</div>
-                                <div><span class="fw-semibold">Fecha de carga:</span> @(consultor.HojaVidaFechaCarga?.ToString("dd/MM/yyyy HH:mm") ?? "-")</div>
-                            }
-                            else
-                            {
-                                <div class="text-muted">No hay hoja de vida cargada.</div>
-                            }
-                        </div>
-
-                        @if (mostrarRetencion)
-                        {
-                            <div class="alert alert-warning py-2 mb-3">
-                                <i class="bi bi-hourglass-split me-1"></i>
-                                Disponible hasta: @consultor!.HojaVidaFechaExpiracion!.Value.ToString("dd/MM/yyyy")
-                            </div>
-                        }
-
-                        @if (!soloLectura)
-                        {
-                            <div class="row g-2 align-items-end">
-                                <div class="col-md-7">
-                                    <label class="form-label mb-1">Seleccionar PDF</label>
-                                    <input asp-for="HojaVidaPdf" id="hojaVidaPdfInput" type="file" class="form-control" accept=".pdf,application/pdf" />
-                                    <div class="form-text">Solo PDF. Tamaño máximo recomendado: 10 MB.</div>
-                                    <div id="hojaVidaClientError" class="text-danger small mt-1 d-none"></div>
-                                </div>
-                                <div class="col-md-5">
-                                    <button type="submit" asp-page-handler="CargarHojaVida" id="btnCargarHojaVida" class="btn btn-primary w-100" formnovalidate>
-                                        <span id="hojaVidaSpinner" class="spinner-border spinner-border-sm me-2 d-none" role="status" aria-hidden="true"></span>
-                                        Cargar hoja de vida
-                                    </button>
-                                </div>
-                            </div>
-                        }
-                    </div>
-                </div>
-
-                <div class="col-md-4">
-                    <label class="form-label">Cédula <span class="text-danger">*</span></label>
-                    <input asp-for="Input.Cedula" class="form-control" required maxlength="30" readonly="@soloLectura" />
-                    <span asp-validation-for="Input.Cedula" class="text-danger small"></span>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Nombre <span class="text-danger">*</span></label>
-                    <input asp-for="Input.Nombre" class="form-control" required maxlength="100" readonly="@soloLectura" />
-                    <span asp-validation-for="Input.Nombre" class="text-danger small"></span>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Apellido <span class="text-danger">*</span></label>
-                    <input asp-for="Input.Apellido" class="form-control" required maxlength="100" readonly="@soloLectura" />
-                    <span asp-validation-for="Input.Apellido" class="text-danger small"></span>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Email <span class="text-danger">*</span></label>
-                    <input asp-for="Input.Email" type="email" class="form-control" required readonly="@soloLectura" />
-                    <span asp-validation-for="Input.Email" class="text-danger small"></span>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Celular <span class="text-danger">*</span></label>
-                    <input asp-for="Input.Celular" class="form-control" required maxlength="20" readonly="@soloLectura" />
-                    <span asp-validation-for="Input.Celular" class="text-danger small"></span>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Cargo <span class="text-danger">*</span></label>
-                    <input asp-for="Input.Cargo" class="form-control" required maxlength="150" readonly="@soloLectura" />
-                    <span asp-validation-for="Input.Cargo" class="text-danger small"></span>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Empresa <span class="text-danger">*</span></label>
-                    <input asp-for="Input.Empresa" class="form-control" required maxlength="150" readonly="@soloLectura" />
-                    <span asp-validation-for="Input.Empresa" class="text-danger small"></span>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Estado <span class="text-danger">*</span></label>
-                    <select asp-for="Input.Estado" class="form-select" disabled="@soloLectura">
-                        <option value="Activo">Activo</option>
-                        <option value="Retirado">Retirado</option>
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Fecha de ingreso <span class="text-danger">*</span></label>
-                    <input asp-for="Input.FechaIngreso" type="date" class="form-control" required readonly="@soloLectura" />
-                    <span asp-validation-for="Input.FechaIngreso" class="text-danger small"></span>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Fecha de nacimiento <span class="text-danger">*</span></label>
-                    <input asp-for="Input.FechaNacimiento" type="date" class="form-control" required readonly="@soloLectura" />
-                    <span asp-validation-for="Input.FechaNacimiento" class="text-danger small"></span>
-                </div>
-                <div class="col-md-8">
-                    <label class="form-label">Dirección</label>
-                    <input asp-for="Input.Direccion" class="form-control" maxlength="250" readonly="@soloLectura" />
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Barrio</label>
-                    <input asp-for="Input.Barrio" class="form-control" maxlength="100" readonly="@soloLectura" />
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Ciudad</label>
-                    <input asp-for="Input.Ciudad" class="form-control" maxlength="100" readonly="@soloLectura" />
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Contacto de emergencia (nombre)</label>
-                    <input asp-for="Input.ContactoEmergenciaNombre" class="form-control" maxlength="150" readonly="@soloLectura" />
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Contacto de emergencia (teléfono)</label>
-                    <input asp-for="Input.ContactoEmergenciaTelefono" class="form-control" maxlength="20" readonly="@soloLectura" />
-                </div>
-
-                <div class="col-12">
-                    <label class="form-label">
-                        Células <span class="text-danger">*</span>
-                    </label>
-                    @if (Model.CelulasDisponibles.Count == 0)
-                    {
-                        <div class="alert alert-warning py-2 small mb-0">No hay células disponibles.</div>
-                    }
-                    else if (soloLectura)
-                    {
-                        <div class="d-flex flex-wrap gap-2">
-                            @foreach (var cel in Model.CelulasDisponibles.Where(x => Model.Input.CelulasIds.Contains(x.Id)))
-                            {
-                                <span class="badge text-dark" style="background:@cel.Color;">@cel.Nombre</span>
-                            }
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="d-flex flex-wrap gap-3">
-                            @foreach (var cel in Model.CelulasDisponibles)
-                            {
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="Input.CelulasIds"
-                                           value="@cel.Id" id="cel_@cel.Id"
-                                           checked="@Model.Input.CelulasIds.Contains(cel.Id)" />
-                                    <label class="form-check-label" for="cel_@cel.Id">@cel.Nombre</label>
-                                </div>
-                            }
-                        </div>
-                        <span asp-validation-for="Input.CelulasIds" class="text-danger small"></span>
-                    }
-                </div>
-
-                <div class="col-12">
-                    <label class="form-label">Observaciones</label>
-                    <textarea asp-for="Input.Observaciones" class="form-control" rows="2" readonly="@soloLectura"></textarea>
-                </div>
-
-                @if (!soloLectura)
-                {
-                    <div class="col-md-6">
-                        <label class="form-label">Cambiar foto de perfil <span class="text-muted small">(opcional)</span></label>
-                        <input asp-for="Foto" type="file" class="form-control" accept="image/*" />
-                        <span class="text-muted small">JPG, PNG, GIF o WEBP. Máximo 5 MB.</span>
-                    </div>
-                }
-            </div>
-
-            @if (!soloLectura)
+        // La foto es opcional al editar: si no se sube una nueva, se conserva la actual.
+        if (Foto is { Length: > 0 })
+        {
+            var (fotoUrl, errorFoto) = await GuardarImagenAsync(Foto);
+            if (errorFoto is not null)
             {
-                <div class="mt-4 d-flex gap-2">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-check-lg me-1"></i>Guardar cambios
-                    </button>
-                    <a asp-page="/DataTeam/DirectorioColaboradores" class="btn btn-outline-secondary">Cancelar</a>
-                </div>
+                Error = errorFoto;
+                return Page();
             }
-        </form>
-    </div>
-</div>
+            Input.FotoUrl = fotoUrl;
+            FotoUrlParaMostrar = _imagenes.ObtenerUrlConSas(Input.FotoUrl);
+        }
 
-@section Scripts {
-    <script>
-        (function () {
-            const form = document.getElementById("detalleConsultorForm");
-            const input = document.getElementById("hojaVidaPdfInput");
-            const btnCargar = document.getElementById("btnCargarHojaVida");
-            const spinner = document.getElementById("hojaVidaSpinner");
-            const error = document.getElementById("hojaVidaClientError");
-            const maxBytes = 10 * 1024 * 1024;
+        var body = new
+        {
+            Input.Id,
+            Input.Cedula,
+            Input.Nombre,
+            Input.Apellido,
+            Input.Email,
+            Input.Celular,
+            Input.Cargo,
+            Input.Rol,
+            Input.Capacidad,
+            Input.Empresa,
+            Input.Direccion,
+            Input.Barrio,
+            Input.Ciudad,
+            Input.ContactoEmergenciaNombre,
+            Input.ContactoEmergenciaTelefono,
+            Input.Estado,
+            Input.FechaIngreso,
+            Input.FechaNacimiento,
+            Input.Observaciones,
+            Input.FotoUrl,
+            Input.Habilitado,
+            // Esta p\u00e1gina no gestiona el % de participaci\u00f3n (eso se hace en Gestionar C\u00e9lula);
+            // se env\u00eda null para que la API conserve el valor vigente de cada membres\u00eda.
+            Celulas = Input.CelulasIds.Select(id => new { CelulaId = id, PorcentajeParticipacion = (decimal?)null })
+        };
 
-            if (!form || !input || !btnCargar || !spinner || !error) return;
+        var result = await _api.PutAsync<ConsultorViewModel>($"api/colaboradores/{Id}", body, token);
 
-            function validarArchivo() {
-                const file = input.files && input.files.length > 0 ? input.files[0] : null;
-                if (!file) {
-                    error.classList.add("d-none");
-                    error.textContent = "";
-                    return true;
-                }
+        if (result?.Exitoso == true)
+        {
+            _logger.LogInformation("Colaborador {Id} actualizado desde el Portal", Id);
+            TempData["Success"] = $"Colaborador {Input.Nombre} {Input.Apellido} actualizado correctamente.";
+            return RedirectToPage("/DataTeam/DirectorioColaboradores");
+        }
 
-                const nombre = (file.name || "").toLowerCase();
-                const esPdf = nombre.endsWith(".pdf");
-                if (!esPdf) {
-                    error.textContent = "Solo se permiten archivos PDF (.pdf).";
-                    error.classList.remove("d-none");
-                    return false;
-                }
+        Error = result?.Mensaje ?? "No se pudo actualizar el colaborador.";
+        return Page();
+    }
 
-                if (file.size > maxBytes) {
-                    error.textContent = "El archivo supera el tamaño máximo recomendado de 10 MB.";
-                    error.classList.remove("d-none");
-                    return false;
-                }
+    public async Task<IActionResult> OnPostCargarHojaVidaAsync()
+    {
+        await CargarCelulasAsync();
 
-                error.classList.add("d-none");
-                error.textContent = "";
-                return true;
-            }
+        // Esta acción solo valida el archivo de hoja de vida, no el formulario completo de edición.
+        var inputKeys = ModelState.Keys.Where(k => k.StartsWith("Input.", StringComparison.OrdinalIgnoreCase)).ToList();
+        foreach (var key in inputKeys)
+            ModelState.Remove(key);
 
-            input.addEventListener("change", validarArchivo);
+        if (!PuedeEditar)
+        {
+            Error = "No tiene permisos para cargar hoja de vida.";
+            return Page();
+        }
 
-            form.addEventListener("submit", function (event) {
-                if (!event.submitter || event.submitter.id !== "btnCargarHojaVida") return;
+        var token = HttpContext.Session.GetString("jwt_token");
+        var consultorCargado = await CargarConsultorAsync(token, mapInput: true);
+        if (!consultorCargado)
+            return Page();
 
-                if (!validarArchivo()) {
-                    event.preventDefault();
-                    return;
-                }
+        if (HojaVidaPdf is null || HojaVidaPdf.Length == 0)
+        {
+            HojaVidaError = "Debe seleccionar un archivo PDF.";
+            return Page();
+        }
 
-                btnCargar.disabled = true;
-                spinner.classList.remove("d-none");
-            });
-        })();
-    </script>
+        if (!EsPdfValido(HojaVidaPdf))
+        {
+            HojaVidaError = "Solo se permiten archivos PDF (.pdf).";
+            return Page();
+        }
+
+        if (HojaVidaPdf.Length > TamanoMaximoHojaVidaBytes)
+        {
+            HojaVidaError = "La hoja de vida supera el tamaño máximo recomendado de 10 MB.";
+            return Page();
+        }
+
+        using var content = new MultipartFormDataContent();
+        await using var stream = HojaVidaPdf.OpenReadStream();
+        using var archivo = new StreamContent(stream);
+        archivo.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
+        content.Add(archivo, "archivo", HojaVidaPdf.FileName);
+
+        var result = await _api.PostMultipartAsync<HojaVidaConsultorViewModel>($"api/colaboradores/{Id}/capacidades/hoja-vida", content, token);
+        if (result?.Exitoso == true)
+        {
+            TempData["Success"] = "Hoja de vida cargada exitosamente";
+            return RedirectToPage(new { id = Id });
+        }
+
+        HojaVidaError = result?.Mensaje ?? "No se pudo cargar la hoja de vida.";
+        return Page();
+    }
+
+    public async Task<IActionResult> OnGetDescargarHojaVidaAsync()
+    {
+        var token = HttpContext.Session.GetString("jwt_token");
+        var result = await _api.DownloadDetailedAsync($"api/colaboradores/{Id}/capacidades/hoja-vida", token);
+
+        if (result?.Exitoso == true && result.Contenido is not null)
+        {
+            return File(result.Contenido, result.ContentType, result.NombreArchivo);
+        }
+
+        if (result?.StatusCode == HttpStatusCode.NotFound)
+        {
+            TempData["Error"] = result.Mensaje ?? "No existe hoja de vida disponible para este consultor.";
+            return RedirectToPage(new { id = Id });
+        }
+
+        TempData["Error"] = result?.Mensaje ?? "No se pudo descargar la hoja de vida.";
+        return RedirectToPage(new { id = Id });
+    }
+
+    private static EditarConsultorViewModel MapToInput(ConsultorViewModel c) => new()
+    {
+        Id = c.Id,
+        Cedula = c.Cedula ?? string.Empty,
+        Nombre = c.Nombre,
+        Apellido = c.Apellido,
+        Email = c.Email,
+        Celular = c.Celular ?? string.Empty,
+        Cargo = c.Cargo ?? string.Empty,
+        Rol = c.Rol,
+        Capacidad = c.Capacidad,
+        Empresa = c.Empresa ?? string.Empty,
+        Direccion = c.Direccion,
+        Barrio = c.Barrio,
+        Ciudad = c.Ciudad,
+        ContactoEmergenciaNombre = c.ContactoEmergenciaNombre,
+        ContactoEmergenciaTelefono = c.ContactoEmergenciaTelefono,
+        Estado = string.IsNullOrWhiteSpace(c.Estado) ? "Activo" : c.Estado,
+        FechaIngreso = c.FechaIngreso,
+        FechaNacimiento = c.FechaNacimiento,
+        Observaciones = c.Observaciones,
+        FotoUrl = c.FotoUrl,
+        Habilitado = c.Habilitado,
+        CelulasIds = c.CelulasIds
+    };
+
+    private async Task<(string? ruta, string? error)> GuardarImagenAsync(IFormFile imagen)
+    {
+        var extension = Path.GetExtension(imagen.FileName).ToLowerInvariant();
+        if (!ExtensionesPermitidas.Contains(extension))
+            return (null, "Formato de imagen no permitido. Use JPG, PNG, GIF o WEBP.");
+
+        if (imagen.Length > TamanoMaximoBytes)
+            return (null, "La imagen supera el tamaño máximo de 5 MB.");
+
+        var nombreArchivo = $"consultor_{Guid.NewGuid():N}{extension}";
+        await using var stream = imagen.OpenReadStream();
+        var url = await _imagenes.SubirAsync(stream, nombreArchivo, "consultores", imagen.ContentType);
+        return (url, null);
+    }
+
+    private async Task CargarCelulasAsync()
+    {
+        var token = HttpContext.Session.GetString("jwt_token");
+        var result = await _api.GetAsync<List<CelulaViewModel>>("api/celulas", token);
+        if (result?.Exitoso == true && result.Data is not null)
+            CelulasDisponibles = result.Data;
+    }
+
+    private async Task<bool> CargarConsultorAsync(string? token, bool mapInput)
+    {
+        var result = await _api.GetAsync<ConsultorViewModel>($"api/colaboradores/{Id}", token);
+        if (result?.Exitoso != true || result.Data is null)
+        {
+            Error = result?.Mensaje ?? "No se encontró el consultor.";
+            return false;
+        }
+
+        ConsultorActual = result.Data;
+        if (mapInput)
+            Input = MapToInput(result.Data);
+
+        return true;
+    }
+
+    private static bool EsPdfValido(IFormFile archivo)
+    {
+        var extension = Path.GetExtension(archivo.FileName).ToLowerInvariant();
+        if (!ExtensionesPdfPermitidas.Contains(extension))
+            return false;
+
+        if (string.IsNullOrWhiteSpace(archivo.ContentType))
+            return true;
+
+        return archivo.ContentType.Equals("application/pdf", StringComparison.OrdinalIgnoreCase)
+            || archivo.ContentType.Equals("application/x-pdf", StringComparison.OrdinalIgnoreCase);
+    }
 }
