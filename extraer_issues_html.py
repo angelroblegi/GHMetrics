@@ -1,20 +1,3 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
-
-  <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.14" />
-    <PackageReference Include="Microsoft.Data.SqlClient" Version="7.1.1" />
-  </ItemGroup>
-
-</Project>
-
-AEL.Fanaia.NovedadVSP.API/AEL.Fanaia.NovedadVSP.API/AEL.Fanaia.NovedadVSP.API.csproj
-
 name: $(date:yyyyMMdd)$(rev:.r)
 jobs:
 - job: Job_1
@@ -25,27 +8,30 @@ jobs:
   - checkout: self
     clean: true
 
+  - task: UseDotNet@2
+    inputs:
+        packageType: 'sdk'
+        version: '10.x'
 
   - task: NuGetAuthenticate@1
     inputs:
       nuGetServiceConnections: 'Feed_Transversales_Auditoria'
 
-
-  - task: NuGetCommand@2
-    displayName: 'NuGet restore solution'
+  - task: DotNetCoreCLI@2
+    displayName: 'Restore NuGet Packages'
     inputs:
       command: 'restore'
-      restoreSolution: '**/AEL.FanaiaRecaudo.DAP.sln'
+      projects: '**/AEL.Fanaia.NovedadVSP.API/AEL.Fanaia.NovedadVSP.API.csproj'
       feedsToUse: 'config'
-      nugetConfigPath: 'Nuget/nugetonlyrestore.config'
+      nugetConfigPath: 'nuget.config'
 
   - task: SonarQubePrepare@5
     displayName: Prepare analysis on SonarQube
     inputs:
       SonarQube: 'Sonar Qube 8.3'
       scannerMode: 'MSBuild'
-      projectKey: 'AEL.FanaiaRecaudo.DAP'
-      projectName: 'AEL.FanaiaRecaudo.DAP'
+      projectKey: 'NovedadVSP_API'
+      projectName: 'NovedadVSP_API'
       projectVersion: '$(Build.BuildNumber)_$(Build.SourceBranchName)'
       extraProperties: |
         sonar.scm.exclusions.disabled=true
@@ -55,13 +41,12 @@ jobs:
         sonar.inclusions=**/*.cs
         sonar.cpd.cross_project=false
 
-  - task: VSBuild@1
-    displayName: 'Build project'
+  - task: DotNetCoreCLI@2
+    displayName: Build project
     inputs:
-      solution: '**/AEL.FanaiaRecaudo.DAP/AEL.FanaiaRecaudo.DAP.csproj'
-      configuration: 'Release'
-      msbuildArchitecture: 'x64'
-      clean: true
+      command: 'build'
+      projects: '**/AEL.Fanaia.NovedadVSP.API/AEL.Fanaia.NovedadVSP.API.csproj'
+      arguments: '--configuration Release --no-restore'
 
   - task: SonarQubeAnalyze@5
     inputs:
@@ -76,6 +61,3 @@ jobs:
 
   - task: PostBuildCleanup@3
     displayName: Clean Agent Directories
-
-
-project key : NovedadVSP_API
