@@ -15,16 +15,16 @@ jobs:
 
   - task: NuGetAuthenticate@1
     inputs:
-      nuGetServiceConnections: 'Feed_Transversales_Auditoria, Feed_Transversales_ControlAcceso, Feed_Transversales_Notificaciones, Feed_Transversales_Personas'
+      nuGetServiceConnections: 'Feed_Transversales_Auditoria'
+
 
   - task: DotNetCoreCLI@2
     displayName: 'Restore NuGet Packages'
     inputs:
       command: 'restore'
-      projects: '**/AEL.Fanaia.NovedadVSP.API/AEL.Fanaia.NovedadVSP.API.csproj'
-      feedsToUse: 'config'
-      nugetConfigPath: 'Nuget/nuget.config'
-
+      projects: '**/**.sln'
+      feedsToUse: 'select'
+      
   - task: SonarQubePrepare@7
     displayName: Prepare Analysis SonarQube
     inputs:
