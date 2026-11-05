@@ -1,2 +1,7 @@
-    inputs:
-      jdkversion: 'JAVA_HOME_17_X64'
+2026-11-05T17:01:56.3535995Z ##[error]Error: The process 'C:\Program Files\dotnet\dotnet.exe' failed with exit code 1
+2026-11-05T17:01:58.4069923Z Result Attachments will be stored in LogStore
+2026-11-05T17:01:58.5846254Z Run Attachments will be stored in LogStore
+2026-11-05T17:01:59.2279286Z ##[warning].NET 5 has some compatibility issues with older Nuget versions(<=5.7), so if you are using an older Nuget version(and not dotnet cli) to restore, then the dotnet cli commands (e.g. dotnet ***) which rely on such restored packages might fail. To mitigate such error, you can either: (1) - Use dotnet cli to restore, (2) - Use Nuget version 5.8 to restore, (3) - Use global.json using an older sdk version(<=3) to ***
+2026-11-05T17:01:59.2281864Z Info: Azure Pipelines hosted agents have been updated and now contain .Net 5.x SDK/Runtime along with the older .Net Core version which are currently lts. Unless you have locked down a SDK version for your project(s), 5.x SDK might be picked up which might have breaking behavior as compared to previous versions. You can learn more about the breaking changes here: https://docs.microsoft.com/en-us/dotnet/core/tools/ and https://docs.microsoft.com/en-us/dotnet/core/compatibility/ . To learn about more such changes and troubleshoot, refer here: https://docs.microsoft.com/en-us/azure/devops/pipelines/tasks/***/dotnet-core-cli?view=azure-devops#troubleshooting
+2026-11-05T17:01:59.2284905Z ##[error]Dotnet command failed with non-zero exit code on the following projects : [
+  'C:\\AG\\dev\\d_8\\_work\\96\\s\\AEL.BDReferencia.DoubleMetaphone.Function\\AEL.BDReferencia.DoubleMetaphone.Tests\\AEL.BDReferencia.DoubleMetaphone.Tests.csproj'
