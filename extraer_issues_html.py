@@ -1,8 +1,9 @@
 name: $(date:yyyyMMdd)$(rev:.r)
 variables:
-  solution: 'AEL.Administradora.AsignarGlosas.DurableFunction/AEL.Administradora.AsignarGlosas.DurableFunction/AEL.Administradora.AsignarGlosas.DurableFunction.sln'
-  projectPath: '$(Build.SourcesDirectory)/AEL.Administradora.AsignarGlosas.DurableFunction'
-  sonarProject: 'AEL.Administradora.AsignarGlosas.Function:Quality'
+  solution: 'AEL.LogsBancarios.ActivarProceso.Function/AEL.LogsBancarios.ActivarProceso.Function.sln'
+  projectPath: '$(Build.SourcesDirectory)/AEL.LogsBancarios.ActivarProceso.Function'
+  sonarProject: 'AEL.LogsBancarios.ActivarProceso.Function'
+  MSBUILDDISABLENODEREUSE: '1'
 jobs:
 - job: Job_1
   displayName: Agent job 1
@@ -10,8 +11,7 @@ jobs:
     name: DEV
   steps:
   - checkout: self
-    clean: true
-
+    clean: true 
   - task: NuGetAuthenticate@1
     inputs:
       nuGetServiceConnections: 'Feed_Transversales_Auditoria'
@@ -22,7 +22,7 @@ jobs:
       command: 'restore'
       projects: '$(solution)'
       feedsToUse: 'select'
-
+ 
   - task: SonarQubePrepare@5
     displayName: Prepare analysis on SonarQube
     inputs:
@@ -32,27 +32,34 @@ jobs:
       projectName: '$(sonarProject)'
       projectVersion: '$(Build.BuildNumber)_$(Build.SourceBranchName)'
       extraProperties: |
-        sonar.exclusions=**/bin/**,**/obj/**
-        sonar.coverage.exclusions=**/Program.cs,**/*.Tests/**
-        sonar.cs.opencover.reportsPaths=$(Agent.TempDirectory)/**/coverage.opencover.xml
+        # Additional properties that will be passed to the scanner, 
+        # Put one key=value per line, example:
+        sonar.coverage.exclusions=AEL.LogsBancarios.ActivarProceso.Function/AEL.LogsBancarios.ActivarProceso.Function/Program.cs
+        sonar.cs.opencover.reportsPaths=$(projectPath)/coverage.opencover.xml
+        # Configuración de paralelismo
+        sonar.parallel=true
+        sonar.parallel.maxThreads=4
+        # Optimización de memoria para el scanner
+        sonar.scanner.opts=-Xmx2048m
+        # Configuración para análisis incremental
         sonar.scm.provider=git
-
+        
   - task: DotNetCoreCLI@2
     displayName: Build project
     inputs:
       command: 'build'
       projects: '$(solution)'
       arguments: '--configuration Release --no-restore'
-
+      
   - task: DotNetCoreCLI@2
     displayName: 'Ejecutar pruebas unitarias con cobertura'
     enabled: True
     inputs:
       command: 'test'
-      projects: '$(projectPath)/AsignacionGlosasAutomatica.Tests/AsignacionGlosasAutomatica.Tests.csproj'
+      projects: '$(projectPath)/AEL.LogsBancarios.ActivarProceso.Tests/ActivarProcesoLogsBancariosFunctionTests.cs'
       arguments: '--configuration Release --no-build --collect:"XPlat Code Coverage" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover'
       publishTestResults: true
-
+      
   - task: SonarQubeAnalyze@5
     displayName: Run Code Analysis
 
