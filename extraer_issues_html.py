@@ -1,66 +1,15 @@
-name: $(date:yyyyMMdd)$(rev:.r)
-variables:
-  solution: 'AEL.Administradora.CargueMasivo/AEL.Administradora.CargueMasivo.Function/AEL.Administradora.CargueMasivo.Function.sln'
-  projectPath: '$(Build.SourcesDirectory)/AEL.Administradora.CargueMasivo'
-  sonarProject: 'AEL.Administradora.CargueMasivo'
-jobs:
-- job: Job_1
-  displayName: Agent job 1
-  pool:
-    name: DEV
-  steps:
-  - checkout: self
-    clean: true
-
-  - task: DotNetCoreCLI@2
-    displayName: 'Restore NuGet Packages'
-    inputs:
-      command: 'restore'
-      projects: '$(solution)'
-      feedsToUse: 'select'
-
-  - task: SonarQubePrepare@5
-    displayName: Prepare analysis on SonarQube
-    inputs:
-      SonarQube: c920b15f-1de4-45cf-8de8-00186bd2439a
-      scannerMode: 'MSBuild'
-      projectKey: '$(sonarProject)'
-      projectName: '$(sonarProject)'
-      projectVersion: '$(Build.BuildNumber)_$(Build.SourceBranchName)'
-      extraProperties: |
-        sonar.exclusions=**/bin/**,**/obj/**
-        sonar.coverage.exclusions=**/Program.cs,**/*.Tests/**
-        sonar.cs.opencover.reportsPaths=$(Agent.TempDirectory)/**/coverage.opencover.xml
-        sonar.scm.provider=git
-
-  - task: DotNetCoreCLI@2
-    displayName: Build project
-    inputs:
-      command: 'build'
-      projects: '$(solution)'
-      arguments: '--configuration Release --no-restore'
-
-  - task: DotNetCoreCLI@2
-    displayName: 'Ejecutar pruebas unitarias con cobertura'
-    enabled: True
-    inputs:
-      command: 'test'
-      projects: '$(projectPath)/AEL.Administradora.CargueMasivo.Function.Tests/AEL.Administradora.CargueMasivo.Function.Tests.csproj'
-      arguments: '--configuration Release --no-build --collect:"XPlat Code Coverage" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover'
-      publishTestResults: true
-
-  - task: SonarQubeAnalyze@5
-    displayName: Run Code Analysis
-
-  - task: SonarQubePublish@5
-    displayName: Publish Quality Gate Result
-    inputs:
-      pollingTimeoutSec: 500
-
-  - task: sonar-buildbreaker@8
-    displayName: Break build on quality gate failure
-    inputs:
-      SonarQube: c920b15f-1de4-45cf-8de8-00186bd2439a
-
-  - task: PostBuildCleanup@3
-    displayName: Clean Agent Directories
+Use the overload of Assert.Single that accepts a filtering function. (https://xunit.net/xunit.analyzers/rules/xUnit2031) [C:\AG\dev\d_9\_work\9\s\AEL.Administradora.CargueMasivo\AEL.Administradora.CargueMasivo.Function.Tests\AEL.Administradora.CargueMasivo.Function.Tests.csproj]
+2026-11-06T16:44:43.7767980Z C:\AG\dev\d_9\_work\9\s\AEL.Administradora.CargueMasivo\AEL.Administradora.CargueMasivo.Function.Tests\Services\FixedWidthConverterTests.cs(149,25): warning xUnit2031: Do not use a Where clause to filter before calling Assert.Single. Use the overload of Assert.Single that accepts a filtering function. (https://xunit.net/xunit.analyzers/rules/xUnit2031) [C:\AG\dev\d_9\_work\9\s\AEL.Administradora.CargueMasivo\AEL.Administradora.CargueMasivo.Function.Tests\AEL.Administradora.CargueMasivo.Function.Tests.csproj]
+2026-11-06T16:44:43.7769343Z C:\Program Files\dotnet\sdk\10.0.403\NuGet.targets(198,5): error : Problem starting the plugin 'C:\Users\adminbuildtfs\.nuget\plugins\netcore\CredentialProvider.Microsoft\CredentialProvider.Microsoft.dll'. The pipe is being closed. [C:\AG\dev\d_9\_work\9\s\AEL.Administradora.CargueMasivo\AEL.Administradora.CargueMasivo.Function\obj\Release\net10.0\WorkerExtensions\WorkerExtensions.csproj]
+2026-11-06T16:44:43.7770167Z     37 Warning(s)
+2026-11-06T16:44:43.7770497Z     1 Error(s)
+2026-11-06T16:44:43.7770636Z 
+2026-11-06T16:44:43.7771012Z Time Elapsed 00:00:26.00
+2026-11-06T16:44:44.3798096Z 
+2026-11-06T16:44:44.4177740Z ##[error]Error: The process 'C:\Program Files\dotnet\dotnet.exe' failed with exit code 1
+2026-11-06T16:44:44.4179242Z ##[warning].NET 5 has some compatibility issues with older Nuget versions(<=5.7), so if you are using an older Nuget version(and not dotnet cli) to restore, then the dotnet cli commands (e.g. dotnet build) which rely on such restored packages might fail. To mitigate such error, you can either: (1) - Use dotnet cli to restore, (2) - Use Nuget version 5.8 to restore, (3) - Use global.json using an older sdk version(<=3) to build
+2026-11-06T16:44:44.4182959Z Info: Azure Pipelines hosted agents have been updated and now contain .Net 5.x SDK/Runtime along with the older .Net Core version which are currently lts. Unless you have locked down a SDK version for your project(s), 5.x SDK might be picked up which might have breaking behavior as compared to previous versions. You can learn more about the breaking changes here: https://docs.microsoft.com/en-us/dotnet/core/tools/ and https://docs.microsoft.com/en-us/dotnet/core/compatibility/ . To learn about more such changes and troubleshoot, refer here: https://docs.microsoft.com/en-us/azure/devops/pipelines/tasks/build/dotnet-core-cli?view=azure-devops#troubleshooting
+2026-11-06T16:44:44.4189195Z ##[error]Dotnet command failed with non-zero exit code on the following projects : [
+  'C:\\AG\\dev\\d_9\\_work\\9\\s\\AEL.Administradora.CargueMasivo\\AEL.Administradora.CargueMasivo.Function\\AEL.Administradora.CargueMasivo.Function.sln'
+]
+2026-11-06T16:44:44.4368226Z ##[section]Finishing: Build project
