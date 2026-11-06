@@ -1,13 +1,28 @@
-  - task: SonarQubePrepare@5
-    displayName: Prepare analysis on SonarQube
-    inputs:
-      SonarQube: c920b15f-1de4-45cf-8de8-00186bd2439a
-      scannerMode: 'MSBuild'
-      projectKey: '$(sonarProject)'
-      projectName: '$(sonarProject)'
-      projectVersion: '$(Build.BuildNumber)_$(Build.SourceBranchName)'
-      extraProperties: |
-        sonar.exclusions=**/bin/**,**/obj/**
-        sonar.coverage.exclusions=**/Program.cs,**/*.Test/**
-        sonar.cs.opencover.reportsPaths=$(Agent.TempDirectory)/TestResults/**/coverage.opencover.xml
-        sonar.scm.provider=git
+System.UnauthorizedAccessException: Access to the path 'CAGdevd_2_work34.sonarqubeout' is denied.
+   at System.Threading.Mutex.CreateMutexCore(Boolean initiallyOwned, String name, NamedWaitHandleOptionsInternal options, Boolean& createdNew)
+   at System.Threading.Mutex..ctor(Boolean initiallyOwned, String name)
+   at SonarScanner.MSBuild.Common.UniqueDirectory.CreateNext(String path)
+   at SonarScanner.MSBuild.Tasks.MakeUniqueDir.Execute()
+   at Microsoft.Build.BackEnd.TaskExecutionHost.Execute()
+   at Microsoft.Build.BackEnd.TaskBuilder.ExecuteInstantiatedTask(TaskExecutionHost taskExecutionHost, TaskLoggingContext taskLoggingContext, TaskHost taskHost, ItemBucket bucket, TaskExecutionMode howToExecuteTask)
+C:\AG\dev\d_2\_work\34\.sonarqube\bin\targets\SonarQube.Integration.targets(313,5): error MSB4018: The "MakeUniqueDir" task failed unexpectedly. [C:\AG\dev\d_2\_work\34\s\AEL.Administradora.CargueDatosBDReferencia\AEL.Administradora.CargueDatosBDReferencia.Infrastruture\AEL.Administradora.CargueDatosBDReferencia.Infrastruture.csproj]
+C:\AG\dev\d_2\_work\34\.sonarqube\bin\targets\SonarQube.Integration.targets(313,5): error MSB4018: System.UnauthorizedAccessException: Access to the path 'CAGdevd_2_work34.sonarqubeout' is denied. [C:\AG\dev\d_2\_work\34\s\AEL.Administradora.CargueDatosBDReferencia\AEL.Administradora.CargueDatosBDReferencia.Infrastruture\AEL.Administradora.CargueDatosBDReferencia.Infrastruture.csproj]
+C:\AG\dev\d_2\_work\34\.sonarqube\bin\targets\SonarQube.Integration.targets(313,5): error MSB4018:    at System.Threading.Mutex.CreateMutexCore(Boolean initiallyOwned, String name, NamedWaitHandleOptionsInternal options, Boolean& createdNew) [C:\AG\dev\d_2\_work\34\s\AEL.Administradora.CargueDatosBDReferencia\AEL.Administradora.CargueDatosBDReferencia.Infrastruture\AEL.Administradora.CargueDatosBDReferencia.Infrastruture.csproj]
+C:\AG\dev\d_2\_work\34\.sonarqube\bin\targets\SonarQube.Integration.targets(313,5): error MSB4018:    at System.Threading.Mutex..ctor(Boolean initiallyOwned, String name) [C:\AG\dev\d_2\_work\34\s\AEL.Administradora.CargueDatosBDReferencia\AEL.Administradora.CargueDatosBDReferencia.Infrastruture\AEL.Administradora.CargueDatosBDReferencia.Infrastruture.csproj]
+C:\AG\dev\d_2\_work\34\.sonarqube\bin\targets\SonarQube.Integration.targets(313,5): error MSB4018:    at SonarScanner.MSBuild.Common.UniqueDirectory.CreateNext(String path) [C:\AG\dev\d_2\_work\34\s\AEL.Administradora.CargueDatosBDReferencia\AEL.Administradora.CargueDatosBDReferencia.Infrastruture\AEL.Administradora.CargueDatosBDReferencia.Infrastruture.csproj]
+C:\AG\dev\d_2\_work\34\.sonarqube\bin\targets\SonarQube.Integration.targets(313,5): error MSB4018:    at SonarScanner.MSBuild.Tasks.MakeUniqueDir.Execute() [C:\AG\dev\d_2\_work\34\s\AEL.Administradora.CargueDatosBDReferencia\AEL.Administradora.CargueDatosBDReferencia.Infrastruture\AEL.Administradora.CargueDatosBDReferencia.Infrastruture.csproj]
+C:\AG\dev\d_2\_work\34\.sonarqube\bin\targets\SonarQube.Integration.targets(313,5): error MSB4018:    at Microsoft.Build.BackEnd.TaskExecutionHost.Execute() [C:\AG\dev\d_2\_work\34\s\AEL.Administradora.CargueDatosBDReferencia\AEL.Administradora.CargueDatosBDReferencia.Infrastruture\AEL.Administradora.CargueDatosBDReferencia.Infrastruture.csproj]
+C:\AG\dev\d_2\_work\34\.sonarqube\bin\targets\SonarQube.Integration.targets(313,5): error MSB4018:    at Microsoft.Build.BackEnd.TaskBuilder.ExecuteInstantiatedTask(TaskExecutionHost taskExecutionHost, TaskLoggingContext taskLoggingContext, TaskHost taskHost, ItemBucket bucket, TaskExecutionMode howToExecuteTask) [C:\AG\dev\d_2\_work\34\s\AEL.Administradora.CargueDatosBDReferencia\AEL.Administradora.CargueDatosBDReferencia.Infrastruture\AEL.Administradora.CargueDatosBDReferencia.Infrastruture.csproj]
+
+Build FAILED.
+
+C:\AG\dev\d_2\_work\34\.sonarqube\bin\targets\SonarQube.Integration.targets(313,5): error MSB4018: The "MakeUniqueDir" task failed unexpectedly. [C:\AG\dev\d_2\_work\34\s\AEL.Administradora.CargueDatosBDReferencia\AEL.Administradora.CargueDatosBDReferencia.Infrastruture\AEL.Administradora.CargueDatosBDReferencia.Infrastruture.csproj]
+C:\AG\dev\d_2\_work\34\.sonarqube\bin\targets\SonarQube.Integration.targets(313,5): error MSB4018: System.UnauthorizedAccessException: Access to the path 'CAGdevd_2_work34.sonarqubeout' is denied. [C:\AG\dev\d_2\_work\34\s\AEL.Administradora.CargueDatosBDReferencia\AEL.Administradora.CargueDatosBDReferencia.Infrastruture\AEL.Administradora.CargueDatosBDReferencia.Infrastruture.csproj]
+C:\AG\dev\d_2\_work\34\.sonarqube\bin\targets\SonarQube.Integration.targets(313,5): error MSB4018:    at System.Threading.Mutex.CreateMutexCore(Boolean initiallyOwned, String name, NamedWaitHandleOptionsInternal options, Boolean& createdNew) [C:\AG\dev\d_2\_work\34\s\AEL.Administradora.CargueDatosBDReferencia\AEL.Administradora.CargueDatosBDReferencia.Infrastruture\AEL.Administradora.CargueDatosBDReferencia.Infrastruture.csproj]
+C:\AG\dev\d_2\_work\34\.sonarqube\bin\targets\SonarQube.Integration.targets(313,5): error MSB4018:    at System.Threading.Mutex..ctor(Boolean initiallyOwned, String name) [C:\AG\dev\d_2\_work\34\s\AEL.Administradora.CargueDatosBDReferencia\AEL.Administradora.CargueDatosBDReferencia.Infrastruture\AEL.Administradora.CargueDatosBDReferencia.Infrastruture.csproj]
+C:\AG\dev\d_2\_work\34\.sonarqube\bin\targets\SonarQube.Integration.targets(313,5): error MSB4018:    at SonarScanner.MSBuild.Common.UniqueDirectory.CreateNext(String path) [C:\AG\dev\d_2\_work\34\s\AEL.Administradora.CargueDatosBDReferencia\AEL.Administradora.CargueDatosBDReferencia.Infrastruture\AEL.Administradora.CargueDatosBDReferencia.Infrastruture.csproj]
+C:\AG\dev\d_2\_work\34\.sonarqube\bin\targets\SonarQube.Integration.targets(313,5): error MSB4018:    at SonarScanner.MSBuild.Tasks.MakeUniqueDir.Execute() [C:\AG\dev\d_2\_work\34\s\AEL.Administradora.CargueDatosBDReferencia\AEL.Administradora.CargueDatosBDReferencia.Infrastruture\AEL.Administradora.CargueDatosBDReferencia.Infrastruture.csproj]
+C:\AG\dev\d_2\_work\34\.sonarqube\bin\targets\SonarQube.Integration.targets(313,5): error MSB4018:    at Microsoft.Build.BackEnd.TaskExecutionHost.Execute() [C:\AG\dev\d_2\_work\34\s\AEL.Administradora.CargueDatosBDReferencia\AEL.Administradora.CargueDatosBDReferencia.Infrastruture\AEL.Administradora.CargueDatosBDReferencia.Infrastruture.csproj]
+C:\AG\dev\d_2\_work\34\.sonarqube\bin\targets\SonarQube.Integration.targets(313,5): error MSB4018:    at Microsoft.Build.BackEnd.TaskBuilder.ExecuteInstantiatedTask(TaskExecutionHost taskExecutionHost, TaskLoggingContext taskLoggingContext, TaskHost taskHost, ItemBucket bucket, TaskExecutionMode howToExecuteTask) [C:\AG\dev\d_2\_work\34\s\AEL.Administradora.CargueDatosBDReferencia\AEL.Administradora.CargueDatosBDReferencia.Infrastruture\AEL.Administradora.CargueDatosBDReferencia.Infrastruture.csproj]
+    0 Warning(s)
+    1 Error(s)
