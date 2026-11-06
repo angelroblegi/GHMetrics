@@ -1,35 +1,75 @@
-2026-11-06T19:24:38.4593400Z ##[section]Starting: Ejecutar pruebas unitarias con cobertura
-2026-11-06T19:24:38.4618908Z ==============================================================================
-2026-11-06T19:24:38.4619199Z Task         : .NET Core
-2026-11-06T19:24:38.4619372Z Description  : Build, test, package, or publish a dotnet application, or run a custom dotnet command
-2026-11-06T19:24:38.4619632Z Version      : 2.281.1
-2026-11-06T19:24:38.4619804Z Author       : Microsoft Corporation
-2026-11-06T19:24:38.4619985Z Help         : https://docs.microsoft.com/azure/devops/pipelines/tasks/build/dotnet-core-cli
-2026-11-06T19:24:38.4620319Z ==============================================================================
-2026-11-06T19:24:39.3734493Z [command]C:\WINDOWS\system32\chcp.com 65001
-2026-11-06T19:24:39.4503258Z Active code page: 65001
-2026-11-06T19:24:39.4750074Z Info: .NET Core SDK/runtime 2.2 and 3.0 are now End of Life(EOL) and have been removed from all hosted agents. If you're using these SDK/runtimes on hosted agents, kindly upgrade to newer versions which are not EOL, or else use UseDotNet task to install the required version.
-2026-11-06T19:24:39.4849375Z [command]"C:\Program Files\dotnet\dotnet.exe" test C:\AG\dev\d_3\_work\11\s\AEL.Administradora.AsignarGlosas.DurableFunction\AsignacionGlosasAutomatica.Tests\AsignacionGlosasAutomatica.Tests.csproj --logger trx --results-directory C:\AG\dev\d_3\_work\_temp --configuration Release /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:CoverletOutput=C:\AG\dev\d_3\_work\11\s/AEL.Administradora.AsignarGlosas.DurableFunction/coverage.opencover.xml
-2026-11-06T19:24:40.7384223Z   Determining projects to restore...
-2026-11-06T19:24:41.5374840Z C:\AG\dev\d_3\_work\11\s\AEL.Administradora.AsignarGlosas.DurableFunction\AEL.Administradora.AsignarGlosas.DurableFunction\AEL.Administradora.AsignarGlosas.DurableFunction.csproj : warning NU1900: Error occurred while getting package vulnerability data: Unable to load the service index for source https://pkgs.dev.azure.com/AEL-Fanaia/_packaging/DEV-TERCERIZADAS/nuget/v3/index.json. [C:\AG\dev\d_3\_work\11\s\AEL.Administradora.AsignarGlosas.DurableFunction\AsignacionGlosasAutomatica.Tests\AsignacionGlosasAutomatica.Tests.csproj]
-2026-11-06T19:24:41.5376480Z C:\AG\dev\d_3\_work\11\s\AEL.Administradora.AsignarGlosas.DurableFunction\AsignacionGlosasAutomatica.Tests\AsignacionGlosasAutomatica.Tests.csproj : warning NU1900: Error occurred while getting package vulnerability data: Unable to load the service index for source https://pkgs.dev.azure.com/AEL-Fanaia/_packaging/DEV-TERCERIZADAS/nuget/v3/index.json.
-2026-11-06T19:24:41.5556023Z   All projects are up-to-date for restore.
-2026-11-06T19:24:41.9525695Z C:\AG\dev\d_3\_work\11\s\AEL.Administradora.AsignarGlosas.DurableFunction\AsignacionGlosasAutomatica.Tests\AsignacionGlosasAutomatica.Tests.csproj : warning NU1900: Error occurred while getting package vulnerability data: Unable to load the service index for source https://pkgs.dev.azure.com/AEL-Fanaia/_packaging/DEV-TERCERIZADAS/nuget/v3/index.json.
-2026-11-06T19:24:42.0998309Z C:\AG\dev\d_3\_work\11\s\AEL.Administradora.AsignarGlosas.DurableFunction\AEL.Administradora.AsignarGlosas.DurableFunction\AEL.Administradora.AsignarGlosas.DurableFunction.csproj : warning NU1900: Error occurred while getting package vulnerability data: Unable to load the service index for source https://pkgs.dev.azure.com/AEL-Fanaia/_packaging/DEV-TERCERIZADAS/nuget/v3/index.json.
-2026-11-06T19:24:42.6776014Z C:\AG\dev\d_3\_work\11\.sonarqube\bin\targets\SonarQube.Integration.targets(313,5): error MSB4018: The "MakeUniqueDir" task failed unexpectedly. [C:\AG\dev\d_3\_work\11\s\AEL.Administradora.AsignarGlosas.DurableFunction\AEL.Administradora.AsignarGlosas.DurableFunction\AEL.Administradora.AsignarGlosas.DurableFunction.csproj]
-2026-11-06T19:24:42.6777843Z C:\AG\dev\d_3\_work\11\.sonarqube\bin\targets\SonarQube.Integration.targets(313,5): error MSB4018: System.UnauthorizedAccessException: Access to the path 'CAGdevd_3_work11.sonarqubeout' is denied. [C:\AG\dev\d_3\_work\11\s\AEL.Administradora.AsignarGlosas.DurableFunction\AEL.Administradora.AsignarGlosas.DurableFunction\AEL.Administradora.AsignarGlosas.DurableFunction.csproj]
-2026-11-06T19:24:42.6783671Z C:\AG\dev\d_3\_work\11\.sonarqube\bin\targets\SonarQube.Integration.targets(313,5): error MSB4018:    at System.Threading.Mutex.CreateMutexCore(Boolean initiallyOwned, String name, NamedWaitHandleOptionsInternal options, Boolean& createdNew) [C:\AG\dev\d_3\_work\11\s\AEL.Administradora.AsignarGlosas.DurableFunction\AEL.Administradora.AsignarGlosas.DurableFunction\AEL.Administradora.AsignarGlosas.DurableFunction.csproj]
-2026-11-06T19:24:42.6785360Z C:\AG\dev\d_3\_work\11\.sonarqube\bin\targets\SonarQube.Integration.targets(313,5): error MSB4018:    at System.Threading.Mutex..ctor(Boolean initiallyOwned, String name) [C:\AG\dev\d_3\_work\11\s\AEL.Administradora.AsignarGlosas.DurableFunction\AEL.Administradora.AsignarGlosas.DurableFunction\AEL.Administradora.AsignarGlosas.DurableFunction.csproj]
-2026-11-06T19:24:42.6788221Z C:\AG\dev\d_3\_work\11\.sonarqube\bin\targets\SonarQube.Integration.targets(313,5): error MSB4018:    at SonarScanner.MSBuild.Common.UniqueDirectory.CreateNext(String path) [C:\AG\dev\d_3\_work\11\s\AEL.Administradora.AsignarGlosas.DurableFunction\AEL.Administradora.AsignarGlosas.DurableFunction\AEL.Administradora.AsignarGlosas.DurableFunction.csproj]
-2026-11-06T19:24:42.6789857Z C:\AG\dev\d_3\_work\11\.sonarqube\bin\targets\SonarQube.Integration.targets(313,5): error MSB4018:    at SonarScanner.MSBuild.Tasks.MakeUniqueDir.Execute() [C:\AG\dev\d_3\_work\11\s\AEL.Administradora.AsignarGlosas.DurableFunction\AEL.Administradora.AsignarGlosas.DurableFunction\AEL.Administradora.AsignarGlosas.DurableFunction.csproj]
-2026-11-06T19:24:42.6791384Z C:\AG\dev\d_3\_work\11\.sonarqube\bin\targets\SonarQube.Integration.targets(313,5): error MSB4018:    at Microsoft.Build.BackEnd.TaskExecutionHost.Execute() [C:\AG\dev\d_3\_work\11\s\AEL.Administradora.AsignarGlosas.DurableFunction\AEL.Administradora.AsignarGlosas.DurableFunction\AEL.Administradora.AsignarGlosas.DurableFunction.csproj]
-2026-11-06T19:24:42.6793597Z C:\AG\dev\d_3\_work\11\.sonarqube\bin\targets\SonarQube.Integration.targets(313,5): error MSB4018:    at Microsoft.Build.BackEnd.TaskBuilder.ExecuteInstantiatedTask(TaskExecutionHost taskExecutionHost, TaskLoggingContext taskLoggingContext, TaskHost taskHost, ItemBucket bucket, TaskExecutionMode howToExecuteTask) [C:\AG\dev\d_3\_work\11\s\AEL.Administradora.AsignarGlosas.DurableFunction\AEL.Administradora.AsignarGlosas.DurableFunction\AEL.Administradora.AsignarGlosas.DurableFunction.csproj]
-2026-11-06T19:24:42.7981845Z 
-2026-11-06T19:24:42.8304355Z ##[error]Error: The process 'C:\Program Files\dotnet\dotnet.exe' failed with exit code 1
-2026-11-06T19:24:42.8342775Z ##[warning]No test result files were found.
-2026-11-06T19:24:42.8347197Z ##[warning].NET 5 has some compatibility issues with older Nuget versions(<=5.7), so if you are using an older Nuget version(and not dotnet cli) to restore, then the dotnet cli commands (e.g. dotnet ***) which rely on such restored packages might fail. To mitigate such error, you can either: (1) - Use dotnet cli to restore, (2) - Use Nuget version 5.8 to restore, (3) - Use global.json using an older sdk version(<=3) to ***
-2026-11-06T19:24:42.8350441Z Info: Azure Pipelines hosted agents have been updated and now contain .Net 5.x SDK/Runtime along with the older .Net Core version which are currently lts. Unless you have locked down a SDK version for your project(s), 5.x SDK might be picked up which might have breaking behavior as compared to previous versions. You can learn more about the breaking changes here: https://docs.microsoft.com/en-us/dotnet/core/tools/ and https://docs.microsoft.com/en-us/dotnet/core/compatibility/ . To learn about more such changes and troubleshoot, refer here: https://docs.microsoft.com/en-us/azure/devops/pipelines/tasks/***/dotnet-core-cli?view=azure-devops#troubleshooting
-2026-11-06T19:24:42.8355253Z ##[error]Dotnet command failed with non-zero exit code on the following projects : [
-  'C:\\AG\\dev\\d_3\\_work\\11\\s\\AEL.Administradora.AsignarGlosas.DurableFunction\\AsignacionGlosasAutomatica.Tests\\AsignacionGlosasAutomatica.Tests.csproj'
-]
-2026-11-06T19:24:42.8660329Z ##[section]Finishing: Ejecutar pruebas unitarias con cobertura
+name: $(date:yyyyMMdd)$(rev:.r)
+variables:
+  solution: 'AEL.Administradora.AsignarGlosas.DurableFunction/AEL.Administradora.AsignarGlosas.DurableFunction/AEL.Administradora.AsignarGlosas.DurableFunction.sln'
+  projectPath: '$(Build.SourcesDirectory)/AEL.Administradora.AsignarGlosas.DurableFunction'
+  sonarProject: 'AEL.Administradora.AsignarGlosas.Function:Quality'
+jobs:
+- job: Job_1
+  displayName: Agent job 1
+  pool:
+    name: DEV
+  steps:
+  - checkout: self
+    clean: true 
+
+  - task: NuGetAuthenticate@1
+    inputs:
+      nuGetServiceConnections: 'Feed_Transversales_Auditoria'
+  - task: DotNetCoreCLI@2
+    displayName: 'Restore NuGet Packages'
+    inputs:
+      command: 'restore'
+      projects: '$(solution)'
+      feedsToUse: 'select'
+ 
+  - task: SonarQubePrepare@5
+    displayName: Prepare analysis on SonarQube
+    inputs:
+      SonarQube: 'c920b15f-1de4-45cf-8de8-00186bd2439a'
+      scannerMode: 'MSBuild'
+      projectKey: '$(sonarProject)'
+      projectName: '$(sonarProject)'
+      projectVersion: '$(Build.BuildNumber)_$(Build.SourceBranchName)'
+      extraProperties: |
+        # Additional properties that will be passed to the scanner, 
+        # Put one key=value per line, example:
+        sonar.coverage.exclusions=AEL.BDReferencia.DoubleMetaphone.Function/AEL.BDReferencia.DoubleMetaphone.Function/Program.cs
+        sonar.cs.opencover.reportsPaths=$(projectPath)/coverage.opencover.xml
+        # Configuración de paralelismo
+        sonar.parallel=true
+        sonar.parallel.maxThreads=4
+        # Optimización de memoria para el scanner
+        sonar.scanner.opts=-Xmx2048m
+        # Configuración para análisis incremental
+        sonar.scm.provider=git
+        
+  - task: DotNetCoreCLI@2
+    displayName: Build project
+    inputs:
+      command: 'build'
+      projects: '$(projectPath)/AEL.Administradora.AsignarGlosas.DurableFunction/AEL.Administradora.AsignarGlosas.DurableFunction.sln'
+      arguments: '--configuration Release'
+      
+  - task: DotNetCoreCLI@2
+    displayName: 'Ejecutar pruebas unitarias con cobertura'
+    enabled: True
+    inputs:
+      command: 'test'
+      projects: '$(projectPath)/AsignacionGlosasAutomatica.Tests/AsignacionGlosasAutomatica.Tests.csproj'
+      arguments: '--configuration Release /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:CoverletOutput=$(projectPath)/coverage.opencover.xml'
+  
+  - task: SonarQubeAnalyze@5
+    displayName: Run Code Analysis
+
+  - task: SonarQubePublish@5
+    displayName: Publish Quality Gate Result
+    inputs:
+      pollingTimeoutSec: 500
+
+  - task: sonar-buildbreaker@8
+    displayName: Break build on quality gate failure
+    inputs:
+      SonarQube: c920b15f-1de4-45cf-8de8-00186bd2439a
+
+  - task: PostBuildCleanup@3
+    displayName: Clean Agent Directories
