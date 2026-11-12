@@ -1,70 +1,62 @@
-name: $(date:yyyyMMdd)$(rev:.r)
-variables:
-  solution: 'AEL.LogsBancarios.ActivarProceso.Function/AEL.LogsBancarios.ActivarProceso.Function.sln'
-  projectPath: '$(Build.SourcesDirectory)/AEL.LogsBancarios.ActivarProceso.Function'
-  sonarProject: 'AEL.LogsBancarios.ActivarProceso.Function'
-jobs:
-- job: Job_1
-  displayName: Agent job 1
-  pool:
-    name: DEV
-  steps:
-  - checkout: self
-    clean: true
+#Your build pipeline references an undefined variable named ‘buildconfiguration’. Create or edit the build pipeline for this YAML file, define the variable on the Variables tab. See https://go.microsoft.com/fwlink/?linkid=865972
 
-  - task: NuGetAuthenticate@1
-    inputs:
-      nuGetServiceConnections: 'Feed_Transversales_Auditoria'
+steps:
+- task: DotNetCoreCLI@2
+  displayName: 'dotnet test'
+  inputs:
+    command: test
+    projects: '$(build.sourcesDirectory)/AEL.Fanaia.DistribucionAportesPension.API/AEL.Fanaia.DAP.Test/AEL.Fanaia.DAP.Test.csproj'
+    arguments: '--configuration $(buildconfiguration) --no-build /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:CoverletOutput=$(Build.SourcesDirectory)/AEL.Fanaia.DistribucionAportesPension.API/AEL.Fanaia.DAP.Test/coverage.opencover.xml'
+    testRunTitle: UnitTestProcesosSFTP
 
-  - task: DotNetCoreCLI@2
-    displayName: 'Restore NuGet Packages'
-    inputs:
-      command: 'restore'
-      projects: '$(solution)'
-      feedsToUse: 'select'
+RUTA DEL TEST AEL.Interconexion.Test/AEL.Interconexion.Test.csproj
 
-  - task: SonarQubePrepare@5
-    displayName: Prepare analysis on SonarQube
-    inputs:
-      SonarQube: 'c920b15f-1de4-45cf-8de8-00186bd2439a'
-      scannerMode: 'MSBuild'
-      projectKey: '$(sonarProject)'
-      projectName: '$(sonarProject)'
-      projectVersion: '$(Build.BuildNumber)_$(Build.SourceBranchName)'
-      extraProperties: |
-        sonar.exclusions=**/bin/**,**/obj/**
-        sonar.coverage.exclusions=**/Program.cs,**/*.Tests/**
-        sonar.cs.opencover.reportsPaths=$(Agent.TempDirectory)/**/coverage.opencover.xml
-        sonar.scm.provider=git
+<Project Sdk="Microsoft.NET.Sdk">
 
-  - task: DotNetCoreCLI@2
-    displayName: Build project
-    inputs:
-      command: 'build'
-      projects: '$(solution)'
-      arguments: '--configuration Release --no-restore'
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
 
-  - task: DotNetCoreCLI@2
-    displayName: 'Ejecutar pruebas unitarias con cobertura'
-    enabled: True
-    inputs:
-      command: 'test'
-      projects: '$(projectPath)/AEL.LogsBancarios.ActivarProceso.Tests/*.csproj'
-      arguments: '--configuration Release --no-build --collect:"XPlat Code Coverage" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover'
-      publishTestResults: true
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
 
-  - task: SonarQubeAnalyze@5
-    displayName: Run Code Analysis
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="10.0.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="coverlet.msbuild" Version="10.0.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
+    <PackageReference Include="Moq" Version="4.21.0" />
+    <PackageReference Include="System.Net.Http" Version="4.3.4" />
+    <PackageReference Include="System.Text.RegularExpressions" Version="4.3.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="4.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
 
-  - task: SonarQubePublish@5
-    displayName: Publish Quality Gate Result
-    inputs:
-      pollingTimeoutSec: 500
+  <ItemGroup>
+    <ProjectReference Include="..\AEL.Utils.DataAccess\AEL.Utils.DataAccess.csproj" />
+    <ProjectReference Include="..\AEL.Utils.EstadosArchivos\AEL.Utils.EstadosArchivos.csproj" />
+    <ProjectReference Include="..\AEL.Utils.Logger\AEL.Utils.Logger.csproj" />
+    <ProjectReference Include="..\AEL.Utils.MsgProcess\AEL.Utils.MsgProcess.csproj" />
+    <ProjectReference Include="..\AEL.Utils.Queue\AEL.Utils.Queue.csproj" />
+    <ProjectReference Include="..\sftp\AEL.ProcesosSFTP.BLL\AEL.ProcesosSFTP.BLL.csproj" />
+    <ProjectReference Include="..\succed\AEL.CifradoBanRep.BLL\AEL.CifradoBanRep.BLL.csproj" />
+    <ProjectReference Include="..\succed\AEL.CifradoBanRep.BLL\AEL.CifradoBanRep.BLL.csproj" />
 
-  - task: sonar-buildbreaker@8
-    displayName: Break build on quality gate failure
-    inputs:
-      SonarQube: c920b15f-1de4-45cf-8de8-00186bd2439a
+    
+  </ItemGroup>
 
-  - task: PostBuildCleanup@3
-    displayName: Clean Agent Directories
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>
