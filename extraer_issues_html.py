@@ -9,3 +9,6 @@ Su resultado determina si el código cumple las condiciones de calidad requerida
 Permite evaluar la rama de desarrollo mediante análisis de seguridad, identificando la presencia de vulnerabilidades y defectos de seguridad introducidos en el código nuevo.
 
 Su resultado determina si el código cumple los criterios de seguridad establecidos para permitir su integración o si debe bloquearse.
+
+
+Garantizar la evaluación y el cumplimiento de los estándares de calidad del 100 % del código generado por inteligencia artificial antes de su integración a la rama principal.
