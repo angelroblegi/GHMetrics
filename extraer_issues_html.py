@@ -1,4 +1,3 @@
-Objetivo: Fortalecer la cobertura de pruebas unitarias en los componentes que incorporan código generado por IA.
-Realizar una intervención mensual de 10 componentes, enfocada en la revisión y mejora de sus pruebas unitarias, con el propósito de que al menos el 70 % de los componentes intervenidos alcancen una cobertura mínima del 50 %.
-
-La cobertura se verificará mediante el análisis de calidad de código en SonarQube, tomando como referencia la cobertura de pruebas unitarias del código nuevo.
+1. Objetivo: Cumplimiento de estándares de calidad
+Garantizar que el código generado por inteligencia artificial cumpla con los criterios de calidad definidos por la organización antes de su incorporación a producción, mediante:
+- Quality Gate de calidad (SonarQube): realizar un análisis estático del código nuevo para verificar el cumplimiento de los umbrales de cobertura de pruebas unitarias, mantenibilidad y duplicidad de código, de acuerdo con los Quality Gates diferenciados según la criticidad del componente. Este análisis permite determinar si el código cumple las condiciones de calidad para su integración.
