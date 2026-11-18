@@ -1,2 +1,4 @@
-Garantizar que el código generado por IA cumpla con los criterios de calidad definidos antes de su incorporación a los componentes de la organización.
-Lograr que el 100 % de los componentes desarrollados con IA sean evaluados bajo los estándares de calidad de código establecidos.
+Objetivo: Fortalecer la cobertura de pruebas unitarias en los componentes que incorporan código generado por IA.
+Realizar una intervención mensual de 10 componentes, enfocada en la revisión y mejora de sus pruebas unitarias, con el propósito de que al menos el 70 % de los componentes intervenidos alcancen una cobertura mínima del 50 %.
+
+La cobertura se verificará mediante el análisis de calidad de código en SonarQube, tomando como referencia la cobertura de pruebas unitarias del código nuevo.
