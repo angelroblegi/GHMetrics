@@ -1,4 +1,3 @@
-Garantizar que el código generado por IA cumpla con los criterios de calidad definidos antes de su incorporación a los componentes de la organización.
-
-
-Lograr que el 100 % de los componentes desarrollados con IA sean evaluados bajo los estándares de calidad de código establecidos.
+¿Cuáles son los estándares de calidad establecidos?
+- QG con sonarqube que permite en el análisis de código sobre los componentes desarrollados y nos permite o no aceptar el código nuevo desarrollado de acuerdo a los QG Diferenciados asignados de acuerdo a la criticidad del componente.
+-QG de seguridad que nos permite analizar la rama de desarrollo y nos permite o no aceptar el código nuevo desarrollado de acuerdo a la inyección o no de bugs.
