@@ -1,1 +1,7 @@
-clean
+Contexto: soy parte del área de calidad de código de Aportes en Línea. Monitoreamos la calidad del código de las células de desarrollo con SonarQube Server y contamos con un modelo de salud del código existente.
+
+Propuesta: complementar el modelo de salud del código con la evaluación de la salud del código generado por inteligencia artificial. La premisa es que todo el código generado por IA se ubica en una rama con el prefijo ia/, por lo que su origen queda identificado por la propia rama y no es necesario distinguirlo línea por línea. Esa rama se analiza y se revisa su calidad antes de llegar a main. Es una propuesta en etapa inicial, cuyo detalle se definirá más adelante.
+
+Flujo: el desarrollador trabaja el código generado por IA en su rama ia/ y analiza su rama → crea un Pull Request hacia main → el Pull Request activa el pipeline de quality gate (QG) para código generado por IA en Azure DevOps, analizado con SonarQube → según el resultado del quality gate, se permite o no el merge sobre main. Si el quality gate se cumple, se permite el merge; si no se cumple, el merge queda bloqueado.
+
+Secciones, cada una en una tarjeta: 1) Título: "Salud del código generado por IA". 2) Contexto. 3) Propuesta y premisa de la rama ia/. 4) Flujo, con los pasos en cajas conectadas por flechas, y al final dos resultados: "QG cumplido: se permite el merge a main" y "QG no cumplido: el merge se bloquea". 5) Estado: propuesta en etapa inicial.
