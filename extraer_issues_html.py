@@ -13,3 +13,6 @@ steps:
      sonar.coverage.exclusions=**/*Test*/**,**/Program.cs,**/Startup.cs,Azure,Proveedores/AvalPay/MafaS37
      sonar.qualitygate.wait=false
      sonar.inclusions=src/**
+
+
+src/Tests es esta
