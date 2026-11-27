@@ -9,10 +9,7 @@ steps:
     extraProperties: |
      sonar.cs.opencover.reportsPaths=$(System.DefaultWorkingDirectory)/TestResults/coverage.opencover.xml
      sonar.scanner.metadataFilePath=$(Agent.TempDirectory)/sonar/$(Build.BuildNumber)/test/report-task.txt
-     sonar.exclusions=**/bin/**,**/obj/**,**/packages/**,**/Service References/**,**/Azure/**,**/Proveedores/AvalPay/MafaS37/**,**/Transacciones**/
+     sonar.exclusions=**/bin/**,**/obj/**,**/packages/**,**/Service References/**,**/Azure/**,**/Proveedores/AvalPay/MafaS37/**,**/Transacciones**/,src/Tests/**
      sonar.coverage.exclusions=**/*Test*/**,**/Program.cs,**/Startup.cs,Azure,Proveedores/AvalPay/MafaS37
      sonar.qualitygate.wait=false
-     sonar.inclusions=src/**
-
-
-src/Tests es esta
+     sonar.inclusions=src/Application/**,src/Domain/**,src/Infraestructure/**,src/Presentation/**
